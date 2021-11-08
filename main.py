@@ -68,8 +68,13 @@ async def ner(model: str, response: Response, text: str = Body(..., media_type="
             })
     return entities
 
+@app.get("/status")
+async def status():
+    return spacy.info()
+
 @app.get("/model/{model}")
 async def meta(model: str, response: Response):
+    """Retrieve metadata about the selected model"""
     nlp = getCachedModel(model)
     if nlp is None:
         response.status_code = status.HTTP_404_NOT_FOUND
