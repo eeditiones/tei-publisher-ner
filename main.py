@@ -7,6 +7,7 @@ import logging
 import spacy
 from spacy.tokens import DocBin
 from spacy.cli.train import train
+import custom
 
 class TrainingExample(BaseModel):
     source: str
@@ -130,24 +131,31 @@ def training(data: TrainingRequest, response: Response):
         lang = nlp.lang
     with TemporaryDirectory(prefix=data.name) as dir:
         logger.info(f"Using {dir} as temporary directory")
+        logfile = Path(dir, "./train.log")
         if (data.base):
-            configFile = createConfig(nlp, dir, data, "ner")
+            configFile = createConfig(nlp, dir, data, "ner", logfile)
         else:
-            configFile = createBlankConfig(lang, dir)
+            configFile = createBlankConfig(lang, dir, logfile)
         trainingData(lang, data.samples, dir)
         modelPath = Path("models", data.name)
         train(configFile, modelPath, overrides={"paths.train": str(Path(dir, "train.spacy")), "paths.dev": str(Path(dir, "dev.spacy"))})
-        return modelPath
 
-def createBlankConfig(lang: str, dir):
+        with open(logfile, 'r') as log:
+            return log.read()
+
+def createBlankConfig(lang: str, dir, logfile: str):
     nlp = spacy.blank(lang)
     nlp.add_pipe("ner")
     config = nlp.config
+    config["training"]["logger"] = {
+        "@loggers": "my_custom_logger.v1",
+        "log_path": str(logfile)
+    }
     configFile = Path(dir, "config.cfg")
     config.to_disk(configFile)
     return configFile
 
-def createConfig(nlp, dir, data:TrainingRequest, component_to_update: str):
+def createConfig(nlp, dir, data:TrainingRequest, component_to_update: str, logfile: str):
     config = nlp.config.copy()
 
     # revert most training settings to the current defaults
@@ -179,6 +187,11 @@ def createConfig(nlp, dir, data:TrainingRequest, component_to_update: str):
                 "source": data.base,
                 "replace_listeners": ["model.tok2vec"],
             }
+
+    config["training"]["logger"] = {
+        "@loggers": "my_custom_logger.v1",
+        "log_path": str(logfile)
+    }
 
     # save the config
     configFile = Path(dir, "config.cfg")
