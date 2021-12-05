@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Response, Body
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from typing import Optional, Dict, List
+from typing import Optional, List
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import logging
@@ -105,7 +106,7 @@ def list_models() -> List[str]:
         models.append(pipe)
     
     localPath = Path('models')
-    configs = localPath.glob("**/*.cfg")
+    configs = localPath.glob("**/meta.json")
     for config in configs:
         models.append(config.parent.relative_to(localPath))
     return models
@@ -119,7 +120,7 @@ def meta(model: str, response: Response):
         return
     return nlp.meta
 
-@app.post("/train/")
+@app.post("/train/", response_class=HTMLResponse)
 def training(data: TrainingRequest, response: Response):
     """Train or retrain a model from sample data"""
     lang = data.lang
@@ -130,7 +131,7 @@ def training(data: TrainingRequest, response: Response):
             return
         lang = nlp.lang
     with TemporaryDirectory(prefix=data.name) as dir:
-        logger.info(f"Using {dir} as temporary directory")
+        print(f"Using {dir} as temporary directory")
         logfile = Path(dir, "./train.log")
         if (data.base):
             configFile = createConfig(nlp, dir, data, "ner", logfile)

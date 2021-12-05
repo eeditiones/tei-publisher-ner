@@ -13,21 +13,32 @@ def custom_logger(log_path):
     ) -> Tuple[Callable, Callable]:
         stdout.write(f"Logging to {log_path}\n")
         log_file = Path(log_path).open("w", encoding="utf8")
-        log_file.write("step\t")
-        log_file.write("score\t")
-        for pipe in nlp.pipe_names:
-            log_file.write(f"loss_{pipe}\t")
-        log_file.write("\n")
+        log_file.write(f"""
+            <table>
+                <thead>
+                    <tr>
+                        <th>Step</th>
+                        <th>Score</th>
+                        ${(log_file.write(f"<th>Loss: {pipe}</th>") for pipe in nlp.pipe_names)}
+                    </tr>
+                </thead>
+                <tbody>
+        """)
 
         def log_step(info: Optional[Dict[str, Any]]):
             if info:
-                log_file.write(f"{info['step']}\t")
-                log_file.write(f"{info['score']}\t")
+                log_file.write('<tr>')
+                log_file.write(f"<td>{info['step']}</td>")
+                log_file.write(f"<td>{info['score']}</td>")
                 for pipe in nlp.pipe_names:
-                    log_file.write(f"{info['losses'][pipe]}\t")
-                log_file.write("\n")
+                    log_file.write(f"<td>{info['losses'][pipe]}</td>")
+                log_file.write("</tr>\n")
+                log_file.flush()
 
         def finalize():
+            log_file.write("""
+                </tbody>
+            </table>""")
             log_file.close()
 
         return log_step, finalize
