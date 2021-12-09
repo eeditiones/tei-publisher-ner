@@ -4,11 +4,13 @@ from pydantic import BaseModel
 from typing import Optional, List
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import sys
 import logging
 import spacy
 from spacy.tokens import DocBin
 from spacy.cli.train import train
 import custom
+from cache import Cache
 
 class TrainingExample(BaseModel):
     source: str
@@ -27,39 +29,21 @@ class Entity(BaseModel):
     start: int
 
 FORMAT = '%(asctime)s %(message)s'
-logging.basicConfig(format=FORMAT)
-logger = logging.getLogger('api')
+logging.basicConfig(format=FORMAT, stream=sys.stdout, level=logging.DEBUG)
+logger = logging.getLogger()
 
 app = FastAPI(
     title="TEI Publisher NER API",
     description="This API exposes endpoints for named entity recognition powered by python and spaCy"
 )
 
+cache = Cache(logger)
+
 # Mapping of NER pipeline labels to TEI Publisher labels
 MAPPINGS = {
     "person": ("PER", "PERSON"),
     "place": ("LOC", "GPE")
 }
-
-MODELS = {}
-
-def getCachedModel(name):
-    """Check if a model is already in the cache, otherwise try to load it"""
-    if name in MODELS:
-        return MODELS[name]
-    
-    path = Path('models', name)
-    print(f"Trying to load model {name} from path...")
-    if path.exists():
-        nlp = spacy.load(path)
-    else:
-        try:
-            nlp = spacy.load(name)
-        except OSError:
-            return None
-
-    MODELS[name] = nlp
-    return nlp
 
 def getLabelMapping(nerLabels):
     """
@@ -78,7 +62,7 @@ def ner(model: str, response: Response, text: str = Body(..., media_type="text/t
     """
     Run entity recognition on the text using the given model
     """
-    nlp = getCachedModel(model)
+    nlp = cache.getModel(model)
     if nlp is None:
         response.status_code = 404
         return
@@ -86,7 +70,7 @@ def ner(model: str, response: Response, text: str = Body(..., media_type="text/t
     doc = nlp(text)
 
     labels = getLabelMapping(nlp.meta["labels"]["ner"])
-
+    logger.info('Extracting entities using model %s', model)
     entities = []
     for ent in doc.ents:
         if ent.label_ in labels:
@@ -114,7 +98,7 @@ def list_models() -> List[str]:
 @app.get("/model/{model}")
 def meta(model: str, response: Response):
     """Retrieve metadata about the selected model"""
-    nlp = getCachedModel(model)
+    nlp = cache.getModel(model)
     if nlp is None:
         response.status_code = 404
         return
@@ -125,7 +109,7 @@ def training(data: TrainingRequest, response: Response):
     """Train or retrain a model from sample data"""
     lang = data.lang
     if data.base:
-        nlp = getCachedModel(data.base)
+        nlp = cache.getModel(data.base)
         if nlp is None:
             response.status_code = 404
             return
