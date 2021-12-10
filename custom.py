@@ -13,13 +13,16 @@ def custom_logger(log_path):
     ) -> Tuple[Callable, Callable]:
         stdout.write(f"Logging to {log_path}\n")
         log_file = Path(log_path).open("w", encoding="utf8")
-        log_file.write(f"""
+        log_file.write("""
             <table>
                 <thead>
                     <tr>
                         <th>Step</th>
                         <th>Score</th>
-                        ${(log_file.write(f"<th>Loss: {pipe}</th>") for pipe in nlp.pipe_names)}
+        """)
+        for pipe in nlp.pipe_names:
+            log_file.write(f"<th>Loss: {pipe}</th>")
+        log_file.write(""")
                     </tr>
                 </thead>
                 <tbody>
