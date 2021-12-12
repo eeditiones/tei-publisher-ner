@@ -95,7 +95,7 @@ def list_models() -> List[str]:
         models.append(config.parent.relative_to(localPath))
     return models
 
-@app.get("/model/{model}")
+@app.get("/model/{model:path}")
 def meta(model: str, response: Response):
     """Retrieve metadata about the selected model"""
     nlp = cache.getModel(model)
@@ -118,7 +118,7 @@ def training(data: TrainingRequest, response: Response):
         print(f"Using {dir} as temporary directory")
         logfile = Path(dir, "./train.log")
         if (data.base):
-            configFile = createConfig(nlp, dir, data, "ner", logfile)
+            configFile = createConfig(nlp, dir, str(Path("models", data.base)), "ner", logfile)
         else:
             configFile = createBlankConfig(lang, dir, logfile)
         trainingData(lang, data.samples, dir)
@@ -140,7 +140,7 @@ def createBlankConfig(lang: str, dir, logfile: str):
     config.to_disk(configFile)
     return configFile
 
-def createConfig(nlp, dir, data:TrainingRequest, component_to_update: str, logfile: str):
+def createConfig(nlp, dir, baseModel: str, component_to_update: str, logfile: str):
     config = nlp.config.copy()
 
     # revert most training settings to the current defaults
@@ -153,8 +153,8 @@ def createConfig(nlp, dir, data:TrainingRequest, component_to_update: str, logfi
     # initialized separately
     config["initialize"]["before_init"] = {
         "@callbacks": "spacy.copy_from_base_model.v1",
-        "tokenizer": data.base,
-        "vocab": data.base
+        "tokenizer": baseModel,
+        "vocab": baseModel
     }
     config["initialize"]["lookups"] = None
     config["initialize"]["vectors"] = None
@@ -165,11 +165,11 @@ def createConfig(nlp, dir, data:TrainingRequest, component_to_update: str, logfi
     config["training"]["frozen_components"] = []
     for pipe_name in nlp.component_names:
         if pipe_name != component_to_update:
-            config["components"][pipe_name] = {"source": data.base}
+            config["components"][pipe_name] = {"source": baseModel}
             config["training"]["frozen_components"].append(pipe_name)
         else:
             config["components"][pipe_name] = {
-                "source": data.base,
+                "source": baseModel,
                 "replace_listeners": ["model.tok2vec"],
             }
 
