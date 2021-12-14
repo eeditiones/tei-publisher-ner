@@ -1,10 +1,14 @@
-title: "Train an NER model using training data generated from TEI Publisher"
-description: "Scripts to create an NER model. Training data is received via TEI Publisher's API and converted automatically into spaCy's expected format."
+title: "Train an NER model using training data generated from a TEI Publisher collection"
+description: "Scripts to create an NER model. Training data is downloaded via TEI Publisher's API and converted automatically into spaCy's expected format."
 # Variables can be referenced across the project.yml using ${vars.var_name}
 vars:
   name: "ner_demo"
   lang: "de"
-  training_collection: "train"
+  # URL where TEI Publisher is running
+  teipublisher: "http://localhost:8080/exist/apps/tei-publisher/"
+  # Name of the collection containing training data
+  # should be a path relative to TEI Publisher's data collection
+  training_collection: "training"
   train: "train.json"
   dev: "validate.json"
   version: "0.0.0"
@@ -18,13 +22,7 @@ vars:
 
 # These are the directories that the project needs. The project CLI will make
 # sure that they always exist.
-directories: ["assets", "corpus", "configs", "scripts", "packages", "../models"]
-
-# Assets that should be downloaded or available in the directory. We're shipping
-# them with the project, so they won't have to be downloaded.
-assets:
-  - dest: "assets/${vars.train}"
-    url: "http://localhost:8080/exist/apps/tei-publisher/api/nlp/data/${vars.training_collection}"
+directories: ["corpus", "configs", "scripts", "packages", "../models"]
 
 # Workflows are sequences of commands (see below) executed in order. You can
 # run them via "spacy project run [workflow]". If a commands's inputs/outputs
@@ -50,9 +48,8 @@ commands:
   - name: "convert"
     help: "Convert the data to spaCy's binary format"
     script:
-      - "python scripts/convert.py ${vars.lang} assets/${vars.train} corpus/train.spacy corpus/dev.spacy"
+      - "python scripts/convert.py ${vars.lang} ${vars.teipublisher}/api/nlp/data/${vars.training_collection} corpus/train.spacy corpus/dev.spacy corpus/data.json"
     deps:
-      - "assets/${vars.train}"
       - "scripts/convert.py"
     outputs:
       - "corpus/train.spacy"

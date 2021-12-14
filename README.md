@@ -26,6 +26,10 @@ Named entity recognition is based on [spaCy](https://spacy.io/) and python. With
 
 8001 is the default port configured in TEI Publisher.
 
+## Training a model
+
+The [training subdirectory](training/README.md) contains a spaCy project. It includes the necessary scripts to download training data via TEI Publisher's API and convert it into spaCy's binary format.
+
 ## API Documentation
 
 You can view the API documentation here: http://localhost:8001/docs
