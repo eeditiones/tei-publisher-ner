@@ -1,5 +1,7 @@
+setuptools
+wheel
+spacy[transformers,lookups]
 fastapi
 pydantic
 uvicorn[Standard]
-spacy
 spacy-streamlit>=1.0.0a0
