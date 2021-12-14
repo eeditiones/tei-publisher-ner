@@ -3,5 +3,5 @@ wheel
 spacy[transformers,lookups]
 fastapi
 pydantic
-uvicorn[Standard]=0.16.0
+uvicorn[Standard]==0.16.0
 spacy-streamlit>=1.0.2
