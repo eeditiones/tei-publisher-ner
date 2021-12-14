@@ -1,7 +1,6 @@
 setuptools
 wheel
-spacy[transformers,lookups]
+spacy
 fastapi
 pydantic
-uvicorn[Standard]==0.16.0
-spacy-streamlit>=1.0.2
+uvicorn[Standard]
