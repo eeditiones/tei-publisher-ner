@@ -8,6 +8,8 @@ Named entity recognition is based on [spaCy](https://spacy.io/) and python. With
 2. The plain text is sent to the `/entities` endpoint of the named entity recognition API, which returns a JSON array of the entities found
 3. TEI Publisher re-maps each received entity back to its position in the original TEI XML and creates an annotation, which is inserted into the web annotation editor
 
+**Note**: as this feature is still under development, you need the `feature/annotations-nlp` branch of TEI Publisher, which integrates the NER API into the web-annotation editor.
+
 ## Installation
 
 1. Install dependencies by running
@@ -20,7 +22,7 @@ Named entity recognition is based on [spaCy](https://spacy.io/) and python. With
 
 3. Start the service with
 
-    `uvicorn main:app --reload --port 8001`
+    `uvicorn main:app --reload --host 0.0.0.0 --port 8001`
 
 8001 is the default port configured in TEI Publisher.
 
