@@ -1,17 +1,9 @@
-title: "Train an NER model using training data generated from a TEI Publisher collection"
-description: "Scripts to create an NER model. Training data is downloaded via TEI 
-  Publisher's API and converted automatically into spaCy's expected format.\n
-  
-  ## How does it work?\n
-  
-  The [conversion script](scripts/convert.py) downloads training data from TEI Publisher's
-  `/api/nlp/data` endpoint, passing a collection or document path as starting point. The endpoint
-  responds with an array of training examples, each consisting of a block of text along with
-  a list of entities occurring in it. This data is then converted into a training sample spaCy
-  can use as input."
+title: "TEI Publisher NER"
+description: "TEI Publisher Named Entity Recognition API and Support Scripts"
 # Variables can be referenced across the project.yml using ${vars.var_name}
 vars:
   name: "ner_demo"
+  port: 8001
   lang: "de"
   # URL where TEI Publisher is running
   teipublisher: "http://localhost:8080/exist/apps/tei-publisher"
@@ -31,7 +23,7 @@ vars:
 
 # These are the directories that the project needs. The project CLI will make
 # sure that they always exist.
-directories: ["corpus", "configs", "scripts", "packages", "../models"]
+directories: ["corpus", "configs", "scripts", "packages", "models"]
 
 # Workflows are sequences of commands (see below) executed in order. You can
 # run them via "spacy project run [workflow]". If a commands's inputs/outputs
@@ -53,12 +45,12 @@ commands:
   - name: "clean"
     help: "Remove auxiliary files and directories"
     script:
-      - "python scripts/cleanup.py ../models/${vars.name}"
+      - "python scripts/cleanup.py models/${vars.name}"
 
   - name: "cleanall"
     help: "Remove auxiliary files and directories"
     script:
-      - "python scripts/cleanup.py ../models/${vars.name} --all"
+      - "python scripts/cleanup.py models/${vars.name} --all"
   
   - name: "download"
     help: "Download a spaCy model with pretrained vectors"
@@ -100,48 +92,53 @@ commands:
   - name: "train"
     help: "Train the NER model"
     script:
-      - "python -m spacy train configs/config.cfg --output ../models/${vars.name} --paths.train corpus/train.spacy --paths.dev corpus/dev.spacy --training.eval_frequency 10 --training.patience 50 --gpu-id ${vars.gpu_id}"
+      - "python -m spacy train configs/config.cfg --output models/${vars.name} --paths.train corpus/train.spacy --paths.dev corpus/dev.spacy --training.eval_frequency 10 --training.patience 50 --gpu-id ${vars.gpu_id}"
     deps:
       - "configs/config.cfg"
       - "corpus/train.spacy"
       - "corpus/dev.spacy"
     outputs:
-      - "../models/${vars.name}"
+      - "models/${vars.name}"
 
   - name: "train-with-vectors"
     help: "Train the NER model with vectors"
     script:
-      - "python -m spacy train configs/config.cfg --output ../models/${vars.name} --paths.train corpus/train.spacy --paths.dev corpus/dev.spacy --training.eval_frequency 10 --training.patience 50 --gpu-id ${vars.gpu_id} --initialize.vectors ${vars.vectors_model} --components.tok2vec.model.embed.include_static_vectors true"
+      - "python -m spacy train configs/config.cfg --output models/${vars.name} --paths.train corpus/train.spacy --paths.dev corpus/dev.spacy --training.eval_frequency 10 --training.patience 50 --gpu-id ${vars.gpu_id} --initialize.vectors ${vars.vectors_model} --components.tok2vec.model.embed.include_static_vectors true"
     deps:
       - "configs/config.cfg"
       - "corpus/train.spacy"
       - "corpus/dev.spacy"
     outputs:
-      - "../models/${vars.name}"
+      - "models/${vars.name}"
 
   - name: "evaluate"
     help: "Evaluate the model and export metrics"
     script:
-      - "python -m spacy evaluate ../models/${vars.name}/model-best corpus/dev.spacy --output ../models/${vars.name}/metrics.json"
+      - "python -m spacy evaluate models/${vars.name}/model-best corpus/dev.spacy --output models/${vars.name}/metrics.json"
     deps:
       - "corpus/dev.spacy"
-      - "../models/${vars.name}/model-best"
+      - "models/${vars.name}/model-best"
     outputs:
       - "training/metrics.json"
 
   - name: package
     help: "Package the trained model as a pip package"
     script:
-      - "python -m spacy package ../models/${vars.name}/model-best packages --name ${vars.name} --version ${vars.version} --force"
+      - "python -m spacy package models/${vars.name}/model-best packages --name ${vars.name} --version ${vars.version} --force"
     deps:
-      - "../models/${vars.name}/model-best"
+      - "models/${vars.name}/model-best"
     outputs_no_cache:
       - "packages/${vars.lang}_${vars.name}-${vars.version}/dist/${vars.lang}_${vars.name}-${vars.version}.tar.gz"
 
   - name: visualize-model
     help: Visualize the model's output interactively using Streamlit
     script:
-      - "python -m streamlit run scripts/visualize_model.py ../models/${vars.name}/model-best \"I saw Shaka Khan in London.\""
+      - "python -m streamlit run scripts/visualize_model.py models/${vars.name}/model-best \"I saw Shaka Khan in London.\""
     deps:
       - "scripts/visualize_model.py"
-      - "../models/${vars.name}/model-best"
+      - "models/${vars.name}/model-best"
+
+  - name: serve
+    help: Run the NER API as a service to be accessed by TEI Publisher
+    script:
+      - "python -m uvicorn scripts.main:app --reload --host 0.0.0.0 --port ${vars.port}"

@@ -1,8 +1,7 @@
 __pycache__
 models
 ner.log
-training/assets
-training/configs
-training/corpus
-training/training
-training/packages
+assets
+configs
+corpus
+packages

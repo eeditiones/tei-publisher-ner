@@ -9,8 +9,8 @@ import logging
 import spacy
 from spacy.tokens import DocBin
 from spacy.cli.train import train
-import custom
-from cache import Cache
+from .custom import *
+from .cache import Cache
 
 class TrainingExample(BaseModel):
     source: str
