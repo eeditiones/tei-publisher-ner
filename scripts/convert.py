@@ -68,7 +68,7 @@ def main(lang: str, url: str, output_train: Path, output_validate: Path,
     random.shuffle(samples)
     splitAt = int(round(len(samples) * 0.3))
     
-    typer.echo(f"\nReceived {info(len(samples))} sample records. Using {splitAt} for training and {len(samples) - splitAt} for evaluation.\n")
+    typer.echo(f"\nReceived {info(len(samples))} sample records. Using {len(samples) - splitAt} for training and {splitAt} for evaluation.\n")
     validation = samples[:splitAt]
     training = samples[splitAt:]
 
