@@ -29,7 +29,9 @@ To start the Named Entity Recognition (NER) Service, run the following command:
 python -m spacy project run serve
 ```
 
-By default the service will listen on port 8001, which corresponds to the port TEI Publisher has configured. If you now open a document in TEI Publisher's annotation editor (or reload the browser window if you had one open), you should see that an additional button is enabled at the end of the left-hand toolbar. This indicates that TEI Publisher was able to communicate with the NER service.
+By default the service will listen on port 8001, which corresponds to the port TEI Publisher has configured. If you now open a document in TEI Publisher's annotation editor (or reload the browser window if you had one open), you should see that an additional button is enabled at the bottom right of the toolbar. This indicates that TEI Publisher was able to communicate with the NER service.
+
+![Toolbar](assets/toolbar.png)
 
 ### How Does it Work?
 
@@ -64,6 +66,8 @@ This will:
 3. start the actual training
 
 The result will be a new model stored into the `models` subdirectory. Now restart the NER service and you should see that the new model is picked up by TEI Publisher and offered for selection in the *models* dropdown within the annotation editor.
+
+![NER dialog](assets/dialog.png)
 
 ## List of Commands
 
