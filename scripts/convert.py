@@ -78,7 +78,7 @@ def main(lang: str, url: str, output_train: Path, output_validate: Path,
     if (verbose):
         typer.echo('\nSkipped entities:')
         typer.echo('\n'.join(warn1))
-    typer.echo(f"\nEntities: {info(total1 + total2)}. {warn(len(warn1))} were skipped due as misaligned!")
+    typer.echo(f"\nEntities: {info(total1 + total2)}. {warn(len(warn1))} were skipped!")
 
 if __name__ == "__main__":
     typer.run(main)

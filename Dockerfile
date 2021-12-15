@@ -13,4 +13,4 @@ EXPOSE 8001
 
 WORKDIR /workspace/tei-publisher-ner
 
-CMD [ "python3", "-m", "uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--port", "8001" ]
+CMD [ "python3", "-m", "spacy", "project", "run", "serve" ]
