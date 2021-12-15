@@ -4,4 +4,3 @@ spacy
 fastapi
 pydantic
 uvicorn[Standard]
-spacy-streamlit
