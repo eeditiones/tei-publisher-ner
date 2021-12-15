@@ -42,7 +42,8 @@ cache = Cache(logger)
 # Mapping of NER pipeline labels to TEI Publisher labels
 MAPPINGS = {
     "person": ("PER", "PERSON"),
-    "place": ("LOC", "GPE")
+    "place": ("LOC", "GPE"),
+    "organization": ("ORG")
 }
 
 def getLabelMapping(nerLabels):

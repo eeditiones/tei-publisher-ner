@@ -22,13 +22,13 @@ Named entity recognition is based on [spaCy](https://spacy.io/) and python. With
 
 3. Start the service with
 
-    `uvicorn main:app --reload --host 0.0.0.0 --port 8001`
+    `python -m uvicorn main:app --reload --host 0.0.0.0 --port 8001`
 
 8001 is the default port configured in TEI Publisher.
 
 ## Training a model
 
-The [training subdirectory](training/README.md) contains a spaCy project. It includes the necessary scripts to download training data via TEI Publisher's API and convert it into spaCy's binary format.
+The [training subdirectory](training/) contains a spaCy project. It includes the necessary scripts to download training data via TEI Publisher's API and convert it into spaCy's binary format.
 
 ## API Documentation
 

@@ -1,11 +1,20 @@
 title: "Train an NER model using training data generated from a TEI Publisher collection"
-description: "Scripts to create an NER model. Training data is downloaded via TEI Publisher's API and converted automatically into spaCy's expected format."
+description: "Scripts to create an NER model. Training data is downloaded via TEI 
+  Publisher's API and converted automatically into spaCy's expected format.\n
+  
+  ## How does it work?\n
+  
+  The [conversion script](scripts/convert.py) downloads training data from TEI Publisher's
+  `/api/nlp/data` endpoint, passing a collection or document path as starting point. The endpoint
+  responds with an array of training examples, each consisting of a block of text along with
+  a list of entities occurring in it. This data is then converted into a training sample spaCy
+  can use as input."
 # Variables can be referenced across the project.yml using ${vars.var_name}
 vars:
   name: "ner_demo"
   lang: "de"
   # URL where TEI Publisher is running
-  teipublisher: "http://localhost:8080/exist/apps/tei-publisher/"
+  teipublisher: "http://localhost:8080/exist/apps/tei-publisher"
   # Name of the collection containing training data
   # should be a path relative to TEI Publisher's data collection
   training_collection: "training"
@@ -29,6 +38,7 @@ directories: ["corpus", "configs", "scripts", "packages", "../models"]
 # haven't changed, it won't be re-run.
 workflows:
   all:
+    - clean
     - convert
     - create-config
     - train
@@ -40,6 +50,16 @@ workflows:
 # via "spacy project run [command] [path]". The help message is optional and
 # shown when executing "spacy project run [optional command] [path] --help".
 commands:
+  - name: "clean"
+    help: "Remove auxiliary files and directories"
+    script:
+      - "python scripts/cleanup.py ../models/${vars.name}"
+
+  - name: "cleanall"
+    help: "Remove auxiliary files and directories"
+    script:
+      - "python scripts/cleanup.py ../models/${vars.name} --all"
+  
   - name: "download"
     help: "Download a spaCy model with pretrained vectors"
     script:
@@ -48,7 +68,7 @@ commands:
   - name: "convert"
     help: "Convert the data to spaCy's binary format"
     script:
-      - "python scripts/convert.py ${vars.lang} ${vars.teipublisher}/api/nlp/data/${vars.training_collection} corpus/train.spacy corpus/dev.spacy corpus/data.json"
+      - "python scripts/convert.py --verbose ${vars.lang} ${vars.teipublisher}/api/nlp/data/${vars.training_collection} corpus/train.spacy corpus/dev.spacy"
     deps:
       - "scripts/convert.py"
     outputs:
