@@ -58,7 +58,7 @@ commands:
   - name: "convert"
     help: "Convert the data to spaCy's binary format"
     script:
-      - "python scripts/convert.py --color --verbose ${vars.lang} --url ${vars.teipublisher}/api/nlp/data/${vars.training_collection} corpus/train.spacy corpus/dev.spacy"
+      - "python scripts/convert.py --verbose ${vars.lang} --url ${vars.teipublisher}/api/nlp/data/${vars.training_collection} corpus/train.spacy corpus/dev.spacy"
     deps:
       - "scripts/convert.py"
     outputs:

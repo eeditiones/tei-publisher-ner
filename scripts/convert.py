@@ -10,8 +10,6 @@ from spacy.lang.char_classes import ALPHA, ALPHA_LOWER, ALPHA_UPPER, HYPHENS
 from spacy.lang.char_classes import CONCAT_QUOTES, LIST_ELLIPSES, LIST_ICONS
 from spacy.util import compile_infix_regex
 
-useAnsi = False
-
 def convert(nlp, samples: List, output_path: Path, label: str):
     db = DocBin()
     total = 0
@@ -41,17 +39,15 @@ def load_samples(url: str):
     return r.json()
 
 def info(text: str): 
-    return typer.style(str(text), fg=typer.colors.BLUE) if useAnsi else str(text)
+    return typer.style(str(text), fg=typer.colors.BLUE)
 def warn(text: str): 
-    return typer.style(str(text), fg=typer.colors.MAGENTA) if useAnsi else str(text)
+    return typer.style(str(text), fg=typer.colors.CYAN)
 
 def main(lang: str, output_train: Path, output_validate: Path,
     url: Optional[str] = typer.Option(None, help="TEI Publisher URL to download sample data from"), 
     file: Optional[Path] = typer.Option(None, help="File containing sample data"),
-    verbose: bool = typer.Option(False, "--verbose"),
-    color: bool = typer.Option(False, "--color")):
+    verbose: bool = typer.Option(False, "--verbose")):
     """Convert training data received from TEI Publisher into spaCy's binary format"""
-    useAnsi = color
     nlp = spacy.blank(lang)
     # Modify tokenizer infix patterns
     infixes = (
@@ -73,6 +69,7 @@ def main(lang: str, output_train: Path, output_validate: Path,
     
     if (file):
         with open(file, "r") as f:
+            typer.echo(f"Loading data from json file {info(file)}")
             samples = srsly.read_json(file)
     elif (url):
         samples = load_samples(url)

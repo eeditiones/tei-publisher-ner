@@ -152,7 +152,7 @@ def training(data: TrainingRequest, response: Response):
 
     with open(logfile, 'w') as log:
         process = subprocess.Popen(['python3', '-m', 'spacy', 'project', 'run', 'all'], 
-            stdout=log, stderr=log, cwd=dir)
+            stdout=log, stderr=subprocess.STDOUT, cwd=dir)
         processMap[process.pid] = {
             "process": process,
             "dir": dir
