@@ -49,11 +49,25 @@ You can view the API documentation here: http://localhost:8001/docs
 
 The default models provided by spaCy perform well on simple modern language texts, but may not produce adequate results on your particular edition. You may thus want to train a model based on a sample collection of texts you compiled. This requires that you have TEI documents which have already been semantically enriched with entity markup, e.g. by annotating them manually using TEI Publisher's annotation editor.
 
+You can train a new model:
+
+1. using TEI Publisher's web interface
+2. via the command line
+
+The **first step** is the same for both approaches: store the compiled sample documents into a collection below TEI Publisher's `data` collection (or reuse the existing `annotate` collection). The easiest way is to use eXide for creating a sub-collection (below `/db/apps/tei-publisher/data`) and uploading the compiled documents.
+
+### Using TEI Publisher's Web Interface
+
+As logged in user, access the `train-ner.html` page in TEI Publisher directly or navigate to it via the `admin` menu.
+
+![Training HTML page](assets/train-ner.png)
+
+### Training via the command line
+
 To train a model:
 
-1. put the compiled sample of documents into a collection below TEI Publisher's `data` collection (or reuse the existing `annotate` collection)
-2. make sure that the variable `training_collection` in [`project.yml`](project.yml) points to the sample collection you chose
-3. run the `all` workflow to start the training
+1. make sure that the variable `training_collection` in [`project.yml`](project.yml) points to the sample collection you chose
+2. run the `all` workflow to start the training
 
 ```sh
 python3 -m spacy project run all
