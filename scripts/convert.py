@@ -1,14 +1,16 @@
-from typing import List
+from typing import List, Optional
 from numpy import random
 import typer
 from pathlib import Path
 import requests
-
+import srsly
 import spacy
 from spacy.tokens import DocBin
 from spacy.lang.char_classes import ALPHA, ALPHA_LOWER, ALPHA_UPPER, HYPHENS
 from spacy.lang.char_classes import CONCAT_QUOTES, LIST_ELLIPSES, LIST_ICONS
 from spacy.util import compile_infix_regex
+
+useAnsi = False
 
 def convert(nlp, samples: List, output_path: Path, label: str):
     db = DocBin()
@@ -38,12 +40,18 @@ def load_samples(url: str):
     r.raise_for_status()
     return r.json()
 
-def info(text: str): return typer.style(str(text), fg=typer.colors.BLUE)
-def warn(text: str): return typer.style(str(text), fg=typer.colors.MAGENTA)
+def info(text: str): 
+    return typer.style(str(text), fg=typer.colors.BLUE) if useAnsi else str(text)
+def warn(text: str): 
+    return typer.style(str(text), fg=typer.colors.MAGENTA) if useAnsi else str(text)
 
-def main(lang: str, url: str, output_train: Path, output_validate: Path, 
-    verbose: bool = typer.Option(False, "--verbose")):
+def main(lang: str, output_train: Path, output_validate: Path,
+    url: Optional[str] = typer.Option(None, help="TEI Publisher URL to download sample data from"), 
+    file: Optional[Path] = typer.Option(None, help="File containing sample data"),
+    verbose: bool = typer.Option(False, "--verbose"),
+    color: bool = typer.Option(False, "--color")):
     """Convert training data received from TEI Publisher into spaCy's binary format"""
+    useAnsi = color
     nlp = spacy.blank(lang)
     # Modify tokenizer infix patterns
     infixes = (
@@ -63,14 +71,20 @@ def main(lang: str, url: str, output_train: Path, output_validate: Path,
     infix_re = compile_infix_regex(infixes)
     nlp.tokenizer.infix_finditer = infix_re.finditer
     
-    samples = load_samples(url)
+    if (file):
+        with open(file, "r") as f:
+            samples = srsly.read_json(file)
+    elif (url):
+        samples = load_samples(url)
+    else:
+        raise typer.BadParameter('Either --url or --file needs to be specified')
     
     random.shuffle(samples)
     splitAt = int(round(len(samples) * 0.3))
     
-    typer.echo(f"\nReceived {info(len(samples))} sample records. Using {len(samples) - splitAt} for training and {splitAt} for evaluation.\n")
-    validation = samples[:splitAt]
+    validation = samples[:splitAt - 1]
     training = samples[splitAt:]
+    typer.echo(f"\nReceived {info(len(samples))} sample records. Using {len(training)} for training and {len(validation)} for evaluation.\n")
 
     (total1, warn1) = convert(nlp, training, output_train, 'Training samples')
     (total2, warn2) = convert(nlp, validation, output_validate, 'Evaluation samples')

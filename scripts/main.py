@@ -1,26 +1,43 @@
+from json.encoder import JSONEncoder
+from os import makedirs, rmdir
+import shutil
 from fastapi import FastAPI, Response, Body
-from fastapi.responses import HTMLResponse
+from fastapi.responses import PlainTextResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, mkdtemp
 import sys
 import logging
 import spacy
 from spacy.tokens import DocBin
 from spacy.cli.train import train
+import srsly
+import json
+import subprocess
 from .custom import *
 from .cache import Cache
 
 class TrainingExample(BaseModel):
+    """A single training example"""
     source: str
     text: str
     entities: List = []
 
+    def toJSON(self):
+        return {
+            "source": self.source,
+            "text": self.text,
+            "entities": self.entities
+        }
+
 class TrainingRequest(BaseModel):
+    """Expected request body for training a model"""
     name: str
     base: Optional[str]
     lang: Optional[str] = 'en'
+    copy_vectors: Optional[str]
     samples: List[TrainingExample]
 
 class Entity(BaseModel):
@@ -36,14 +53,20 @@ app = FastAPI(
     title="TEI Publisher NER API",
     description="This API exposes endpoints for named entity recognition powered by python and spaCy"
 )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*']
+)
 
 cache = Cache(logger)
+processMap = {}
 
 # Mapping of NER pipeline labels to TEI Publisher labels
 MAPPINGS = {
     "person": ("PER", "PERSON"),
     "place": ("LOC", "GPE"),
-    "organization": ("ORG")
+    "organization": ("ORG"),
+    "author": ("AUT")
 }
 
 def getLabelMapping(nerLabels):
@@ -105,9 +128,10 @@ def meta(model: str, response: Response):
         return
     return nlp.meta
 
-@app.post("/train/", response_class=HTMLResponse)
+@app.post("/train/")
 def training(data: TrainingRequest, response: Response):
     """Train or retrain a model from sample data"""
+    print(f"Vectors: {data.copy_vectors}")
     lang = data.lang
     if data.base:
         nlp = cache.getModel(data.base)
@@ -115,97 +139,66 @@ def training(data: TrainingRequest, response: Response):
             response.status_code = 404
             return
         lang = nlp.lang
-    with TemporaryDirectory(prefix=data.name) as dir:
-        print(f"Using {dir} as temporary directory")
-        logfile = Path(dir, "./train.log")
-        if (data.base):
-            configFile = createConfig(nlp, dir, str(Path("models", data.base)), "ner", logfile)
-        else:
-            configFile = createBlankConfig(lang, dir, logfile)
-        trainingData(lang, data.samples, dir)
-        modelPath = Path("models", data.name)
-        train(configFile, modelPath, overrides={"paths.train": str(Path(dir, "train.spacy")), "paths.dev": str(Path(dir, "dev.spacy"))})
+    dir = mkdtemp(prefix=data.name)
 
-        with open(logfile, 'r') as log:
-            return log.read()
+    print(f"Using {dir} as temporary directory")
 
-def createBlankConfig(lang: str, dir, logfile: str):
-    nlp = spacy.blank(lang)
-    nlp.add_pipe("ner")
-    config = nlp.config
-    config["training"]["logger"] = {
-        "@loggers": "my_custom_logger.v1",
-        "log_path": str(logfile)
-    }
-    configFile = Path(dir, "config.cfg")
-    config.to_disk(configFile)
-    return configFile
+    initProject(data, lang, dir)
 
-def createConfig(nlp, dir, baseModel: str, component_to_update: str, logfile: str):
-    config = nlp.config.copy()
+    with open(Path(dir, 'input.json'), 'w') as f:
+        json.dump(data.samples, f, ensure_ascii=False, default=lambda x: x.toJSON())
 
-    # revert most training settings to the current defaults
-    default_config = spacy.blank(nlp.lang).config
-    config["corpora"] = default_config["corpora"]
-    config["training"]["logger"] = default_config["training"]["logger"]
+    logfile = Path(dir, "train.log")
 
-    # copy tokenizer and vocab settings from the base model, which includes
-    # lookups (lexeme_norm) and vectors, so they don't need to be copied or
-    # initialized separately
-    config["initialize"]["before_init"] = {
-        "@callbacks": "spacy.copy_from_base_model.v1",
-        "tokenizer": baseModel,
-        "vocab": baseModel
-    }
-    config["initialize"]["lookups"] = None
-    config["initialize"]["vectors"] = None
+    with open(logfile, 'w') as log:
+        process = subprocess.Popen(['python3', '-m', 'spacy', 'project', 'run', 'all'], 
+            stdout=log, stderr=log, cwd=dir)
+        processMap[process.pid] = {
+            "process": process,
+            "dir": dir
+        }
+        return process.pid
 
-    # source all components from the loaded pipeline and freeze all except the
-    # component to update; replace the listener for the component that is
-    # being updated so that it can be updated independently
-    config["training"]["frozen_components"] = []
-    for pipe_name in nlp.component_names:
-        if pipe_name != component_to_update:
-            config["components"][pipe_name] = {"source": baseModel}
-            config["training"]["frozen_components"].append(pipe_name)
-        else:
-            config["components"][pipe_name] = {
-                "source": baseModel,
-                "replace_listeners": ["model.tok2vec"],
-            }
+@app.get("/train/{pid}", response_class=PlainTextResponse)
+def poll_training_log(pid: int, response: Response):
+    """Poll the training output"""
+    if not pid in processMap:
+        response.status_code = 404
+        return
+    info = processMap[pid];
+    log = ''
+    with open(Path(info['dir'], 'train.log'), 'r') as f:
+        log = f.read()
+    
+    retcode = info['process'].poll()
+    if retcode is not None:
+        response.status_code = 200
+        shutil.rmtree(info['dir'], ignore_errors=True)
+        log += f"\n\nProcess completed with exit code {retcode}."
+    else:
+        response.status_code = 202
+    return log
 
-    config["training"]["logger"] = {
-        "@loggers": "my_custom_logger.v1",
-        "log_path": str(logfile)
-    }
+def initProject(data: TrainingRequest, lang: str, dir: Path):
+    """Create a spaCy project in temporary directory"""
+    project = srsly.read_yaml('./scripts/project.tmpl.yml')
+    project['title'] = data.name
+    project['vars']['name'] = data.name
+    project['vars']['lang'] = lang
+    project['vars']['model_output'] = str(Path(Path.cwd(), 'models'))
 
-    # save the config
-    configFile = Path(dir, "config.cfg")
-    config.to_disk(configFile)
-    return configFile
+    if data.copy_vectors is not None:
+        project['vars']['pipeline'] = data.copy_vectors
+        project['workflows']['all'] = ('convert', 'create-config', 'train-with-vectors')
+    elif data.base is not None:
+        project['vars']['pipeline'] = data.base
+        project['workflows']['all'] = ('convert', 'create-config-update', 'train')
+    srsly.write_yaml(Path(dir, 'project.yml'), project)
 
-def trainingData(lang: str, samples: List[TrainingExample], dir):
-    nlp = spacy.blank(lang)
-    splitAt = int(round(len(samples) * 0.3))
-    validation = samples[:splitAt]
-    training = samples[splitAt:]
-    convert(nlp, training, Path(dir, "train.spacy"))
-    convert(nlp, validation, Path(dir, "dev.spacy"))
+    scripts = Path(dir, 'scripts')
+    makedirs(scripts, exist_ok=True)
+    shutil.copy('./scripts/convert.py', scripts)
+    shutil.copy('./scripts/create-config.py', scripts)
 
-def convert(nlp, samples: List[TrainingExample], output_path: Path):
-    db = DocBin()
-    for sample in samples:
-        ents = []
-        doc = nlp.make_doc(sample.text)
-        for anno in sample.entities:
-            span = doc.char_span(anno[0], anno[1], label=anno[2])
-            if span is None:
-                msg = f"Skipping entity [{anno[0]}, {anno[1]}, {anno[2]}] in the following text because the character span '{doc.text[anno[0]:anno[1]]}' does not align with token boundaries: {sample.source}"
-                logger.info(msg)
-            else:
-                ents.append(span)
-
-
-        doc.ents = ents
-        db.add(doc)
-    db.to_disk(output_path)
+    # Remove an existing model with the same name
+    shutil.rmtree(Path(Path.cwd(), 'models', data.name), ignore_errors=True)

@@ -1,0 +1,79 @@
+title: "TEI Publisher NER"
+description: "TEI Publisher Named Entity Recognition API and Support Scripts"
+# Variables can be referenced across the project.yml using ${vars.var_name}
+vars:
+  name: "ner_demo"
+  lang: "de"
+  version: "0.0.0"
+  model_output: "models"
+  # "efficiency" or "accuracy"
+  optimize: "efficiency"
+  # Set your GPU ID, -1 is CPU
+  gpu_id: -1
+  pipeline: "de_core_news_sm"
+
+# These are the directories that the project needs. The project CLI will make
+# sure that they always exist.
+directories: ["corpus", "configs", "scripts"]
+
+# Workflows are sequences of commands (see below) executed in order. You can
+# run them via "spacy project run [workflow]". If a commands's inputs/outputs
+# haven't changed, it won't be re-run.
+workflows:
+  all:
+    - convert
+    - create-config
+    - train
+
+# Project commands, specified in a style similar to CI config files (e.g. Azure
+# pipelines). The name is the command name that lets you trigger the command
+# via "spacy project run [command] [path]". The help message is optional and
+# shown when executing "spacy project run [optional command] [path] --help".
+commands:
+  - name: "convert"
+    help: "Convert the data to spaCy's binary format"
+    script:
+      - "python scripts/convert.py --verbose ${vars.lang} --file input.json corpus/train.spacy corpus/dev.spacy"
+    deps:
+      - "scripts/convert.py"
+    outputs:
+      - "corpus/train.spacy"
+      - "corpus/dev.spacy"
+
+  - name: "create-config"
+    help: "Create a new config with an NER pipeline component"
+    script:
+      - "python -m spacy init config --lang ${vars.lang} --pipeline ner configs/config.cfg --force --optimize ${vars.optimize}"
+    outputs:
+      - "configs/config.cfg"
+  
+  - name: "create-config-update"
+    help: "Create a config, which updates the NER component of an existing pipeline, but keeps all other components"
+    script:
+      - "python scripts/create-config.py ${vars.pipeline} ner configs/config.cfg"
+    deps:
+      - "scripts/create-config.py"
+    outputs:
+      - "configs/config.cfg"
+  
+  - name: "train"
+    help: "Train the NER model"
+    script:
+      - "python -m spacy train configs/config.cfg --output ${vars.model_output}/${vars.name} --paths.train corpus/train.spacy --paths.dev corpus/dev.spacy --training.eval_frequency 10 --training.patience 50 --gpu-id ${vars.gpu_id}"
+    deps:
+      - "configs/config.cfg"
+      - "corpus/train.spacy"
+      - "corpus/dev.spacy"
+    outputs:
+      - "models/${vars.name}"
+
+  - name: "train-with-vectors"
+    help: "Train the NER model with vectors"
+    script:
+      - "python -m spacy train configs/config.cfg --output ${vars.model_output}/${vars.name} --paths.train corpus/train.spacy --paths.dev corpus/dev.spacy --training.eval_frequency 10 --training.patience 50 --gpu-id ${vars.gpu_id} --initialize.vectors ${vars.pipeline} --components.tok2vec.model.embed.include_static_vectors true"
+    deps:
+      - "configs/config.cfg"
+      - "corpus/train.spacy"
+      - "corpus/dev.spacy"
+    outputs:
+      - "models/${vars.name}"
