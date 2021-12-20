@@ -10,8 +10,6 @@ from tempfile import mkdtemp
 import sys
 import logging
 import spacy
-from spacy.tokens import DocBin
-from spacy.cli.train import train
 import srsly
 import json
 import re
@@ -39,6 +37,11 @@ class TrainingRequest(BaseModel):
     lang: Optional[str] = 'en'
     copy_vectors: Optional[str]
     samples: List[TrainingExample]
+
+class PatternRequest(BaseModel):
+    lang: Optional[str] = 'en'
+    text: str
+    patterns: List
 
 class Entity(BaseModel):
     """A single entity"""
@@ -136,6 +139,23 @@ def normalize_offsets(text: str) -> List:
         offsets.append((start, offset))
     return (re.sub(r"[\s\n]{2,}|\n", " ", text), offsets)
 
+@app.post("/patterns/")
+def entity_ruler(data: PatternRequest) -> List[Entity]:
+    """Use rule-based matching to expand entities"""
+    nlp = spacy.blank(data.lang)
+    ruler = nlp.add_pipe("entity_ruler", config={"validate": True})
+    ruler.add_patterns(data.patterns)
+
+    (normText, normOffsets) = normalize_offsets(data.text)
+
+    doc = nlp(normText)
+    labels = { "PER": "person" }
+    entities = []
+    for ent in doc.ents:
+        if ent.label_ in labels:
+            adjOffset = adjust_offset(normOffsets, ent.start_char, ent.end_char)
+            adjText = data.text[adjOffset[0]:adjOffset[1]]
+            entities.append(Entity(text=adjText, type=labels[ent.label_], start=adjOffset[0]))
     return entities
 
 @app.get("/status")
