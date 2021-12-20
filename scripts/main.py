@@ -1,5 +1,4 @@
-from json.encoder import JSONEncoder
-from os import makedirs, rmdir
+from os import makedirs
 import shutil
 from fastapi import FastAPI, Response, Body
 from fastapi.responses import PlainTextResponse
@@ -15,6 +14,7 @@ from spacy.tokens import DocBin
 from spacy.cli.train import train
 import srsly
 import json
+import re
 import subprocess
 from .custom import *
 from .cache import Cache
@@ -41,6 +41,7 @@ class TrainingRequest(BaseModel):
     samples: List[TrainingExample]
 
 class Entity(BaseModel):
+    """A single entity"""
     text: str
     type: str
     start: int
@@ -90,15 +91,51 @@ def ner(model: str, response: Response, text: str = Body(..., media_type="text/t
     if nlp is None:
         response.status_code = 404
         return
-    
-    doc = nlp(text)
+    (normText, normOffsets) = normalize_offsets(text)
+    doc = nlp(normText)
 
     labels = getLabelMapping(nlp.meta["labels"]["ner"])
     logger.info('Extracting entities using model %s', model)
     entities = []
     for ent in doc.ents:
         if ent.label_ in labels:
-            entities.append(Entity(text=ent.text, type=labels[ent.label_], start=ent.start_char))
+            adjOffset = adjust_offset(normOffsets, ent.start_char, ent.end_char)
+            adjText = text[adjOffset[0]:adjOffset[1]]
+            entities.append(Entity(text=adjText, type=labels[ent.label_], start=adjOffset[0]))
+    return entities
+
+def adjust_offset(offsets: List, start: int, end: int) -> Tuple:
+    """
+    Recompute offsets into the normalized text to be relative to the original text.
+    """
+    i = 0
+    # computed adjusted start
+    while i < len(offsets) and offsets[i][0] < start: i += 1
+    adjStart = start if i == 0 else offsets[i - 1][1] + start
+    
+    # computed adjusted end: entities may span across whitespace
+    while i < len(offsets) and offsets[i][0] < end: i += 1
+    adjEnd = end if i == 0 else offsets[i - 1][1] + end
+    return (adjStart, adjEnd)
+
+def normalize_offsets(text: str) -> List:
+    """
+    Normalize the text by replacing sequences of 2 or more whitespace characters
+    with a single space.
+
+    Returns a tuple with 1) the normalized text and 2) a list of pairs, each
+    containing a) the offset into the normalized text, b) the number of whitespace
+    characters replaced up to the current offset
+    """
+    offsets = []
+    offset = 0
+    for match in re.finditer(r"[\s\n]{2,}", text):
+        span = match.span()
+        start = span[0] - offset
+        offset += (span[1] - span[0] - 1)
+        offsets.append((start, offset))
+    return (re.sub(r"[\s\n]{2,}|\n", " ", text), offsets)
+
     return entities
 
 @app.get("/status")
