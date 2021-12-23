@@ -17,7 +17,7 @@ The project
 
 2. Download one or more trained [spaCy pipelines](https://spacy.io/models), e.g. for German:
 
-    `python -m spacy download en_core_web_sm`
+    `python -m spacy download de_core_news_sm`
 
 ## Starting the Named Entity Recognition Service
 
