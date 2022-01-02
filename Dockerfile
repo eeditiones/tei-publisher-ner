@@ -1,6 +1,6 @@
-FROM python:3-alpine
+FROM python:3-slim
 
-RUN apk add git
+RUN apt-get update && apt-get install -y git
 
 WORKDIR /workspace
 
