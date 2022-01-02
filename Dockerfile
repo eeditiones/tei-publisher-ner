@@ -1,5 +1,7 @@
 FROM python:3-alpine
 
+RUN apk add git
+
 WORKDIR /workspace
 
 # Install tei-publisher-ner plus German and English language models

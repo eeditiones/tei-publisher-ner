@@ -188,7 +188,6 @@ def meta(model: str, response: Response):
 @app.post("/train/")
 def training(data: TrainingRequest, response: Response):
     """Train or retrain a model from sample data"""
-    print(f"Vectors: {data.copy_vectors}")
     lang = data.lang
     if data.base:
         nlp = cache.getModel(data.base)
