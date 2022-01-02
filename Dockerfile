@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/vscode/devcontainers/python:3
+FROM python:3-alpine
 
 WORKDIR /workspace
 
