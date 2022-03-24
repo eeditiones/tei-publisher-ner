@@ -9,7 +9,7 @@ The project
 
 ## Installation
 
-**Note**: as this feature is still under development, you need the `feature/annotations-nlp` branch of TEI Publisher, which integrates the NER API into the web-annotation editor.
+**Note**: as this feature is still under development, you need the (not yet released) version 8 or the `master` branch of TEI Publisher, which integrates the NER API into the web-annotation editor.
 
 1. Install dependencies by running
 
