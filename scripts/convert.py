@@ -14,6 +14,7 @@ def convert(nlp, samples: List, output_path: Path, label: str):
     db = DocBin()
     total = 0
     warnings = [];
+    labels = {};
     with typer.progressbar(samples, label = label) as progress:
         for sample in progress:
             ents = []
@@ -26,10 +27,17 @@ def convert(nlp, samples: List, output_path: Path, label: str):
                     warnings.append(msg)
                 else:
                     ents.append(span)
+                labelCount = labels.get(anno[2]) or 0
+                labels[anno[2]] = labelCount + 1
 
             doc.ents = ents
             db.add(doc)
     db.to_disk(output_path)
+
+    typer.echo(f"\n{info('Entity')}\tCount")
+    for (type, count) in labels.items():
+        typer.echo(f"{type}:\t{count}")
+    
     return (total, warnings)
 
 def load_samples(url: str):
