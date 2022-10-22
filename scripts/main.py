@@ -67,9 +67,9 @@ processMap = {}
 
 # Mapping of NER pipeline labels to TEI Publisher labels
 MAPPINGS = {
-    "person": ("PER", "PERSON"),
-    "place": ("LOC", "GPE"),
-    "organization": ("ORG"),
+    "person": ("PER", "PERSON", "persName"),
+    "place": ("LOC", "GPE", "placeName", "geogName"),
+    "organization": ("ORG", "orgName"),
     "author": ("AUT")
 }
 
