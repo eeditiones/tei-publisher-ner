@@ -67,7 +67,7 @@ processMap = {}
 
 # Mapping of NER pipeline labels to TEI Publisher labels
 MAPPINGS = {
-    "person": ("PER", "PERSON", "persName"),
+    "person": ("PER", "PERSON", "persName", "PRS"),
     "place": ("LOC", "GPE", "placeName", "geogName"),
     "organization": ("ORG", "orgName"),
     "author": ("AUT")
@@ -115,7 +115,7 @@ def adjust_offset(offsets: List, start: int, end: int) -> Tuple:
     # computed adjusted start
     while i < len(offsets) and offsets[i][0] < start: i += 1
     adjStart = start if i == 0 else offsets[i - 1][1] + start
-    
+
     # computed adjusted end: entities may span across whitespace
     while i < len(offsets) and offsets[i][0] < end: i += 1
     adjEnd = end if i == 0 else offsets[i - 1][1] + end
@@ -169,7 +169,7 @@ def list_models() -> List[str]:
     models = []
     for pipe in spacy.info()["pipelines"]:
         models.append(pipe)
-    
+
     localPath = Path('models')
     configs = localPath.glob("**/meta.json")
     for config in configs:
@@ -207,7 +207,7 @@ def training(data: TrainingRequest, response: Response):
     logfile = Path(dir, "train.log")
 
     with open(logfile, 'w') as log:
-        process = subprocess.Popen(['python3', '-m', 'spacy', 'project', 'run', 'all'], 
+        process = subprocess.Popen(['python3', '-m', 'spacy', 'project', 'run', 'all'],
             stdout=log, stderr=subprocess.STDOUT, cwd=dir)
         processMap[process.pid] = {
             "process": process,
@@ -225,7 +225,7 @@ def poll_training_log(pid: int, response: Response):
     log = ''
     with open(Path(info['dir'], 'train.log'), 'r') as f:
         log = f.read()
-    
+
     retcode = info['process'].poll()
     if retcode is not None:
         response.status_code = 200
