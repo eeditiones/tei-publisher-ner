@@ -2,6 +2,8 @@
 
 This repository contains the API used by TEI Publisher's web-annotation editor to detect entities in the input text as well as scripts to train entity recognition models. Named entity recognition is based on [spaCy](https://spacy.io/) and python.
 
+An [article](https://www.e-editiones.org/posts/names-sell-named-entity-recognition-in-tei-publisher/) describing the main features has been published on e-editiones.org.
+
 The project
 
 1. serves the **Named Entity Recognition API** which is accessed by TEI Publisher to enrich TEI documents with auto-detected entities
