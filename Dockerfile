@@ -10,7 +10,7 @@ RUN git clone https://github.com/eeditiones/tei-publisher-ner.git \
     && pip3 install --no-cache-dir --upgrade -r requirements.txt \
     && python3 -m spacy download de_core_news_sm \
     && python3 -m spacy download en_core_web_sm \
-    && python3 -m spacy download pl_core_news_md \
+    && python3 -m spacy download pl_core_news_md
 
 EXPOSE 8001
 
