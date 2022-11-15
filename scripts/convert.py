@@ -56,7 +56,7 @@ def warn(text: str):
 def main(lang: str, output_train: Path, output_validate: Path,
     url: Optional[str] = typer.Option(None, help="TEI Publisher URL to download sample data from"), 
     file: Optional[Path] = typer.Option(None, help="File containing sample data"),
-    debug: bool = typer.Option(False, "--debug"),
+    debug: bool = typer.Option(False, "--debug", help="Also dump input JSON data into training data output folder"),
     verbose: bool = typer.Option(False, "--verbose")):
     """Convert training data received from TEI Publisher into spaCy's binary format"""
     nlp = spacy.blank(lang)

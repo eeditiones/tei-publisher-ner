@@ -97,6 +97,7 @@ Commands are only re-run if their inputs have changed.
 | `cleanall` | Remove auxiliary files and directories |
 | `download` | Download a spaCy model with pretrained vectors |
 | `convert` | Convert the data to spaCy's binary format |
+| `convert.debug` | Convert the data to spaCy's binary format, also dumping the input JSON data into the training data output directory |
 | `check` | Check the created training data sets |
 | `create-config` | Create a new config with an NER pipeline component |
 | `create-config-update` | Create a config, which updates the NER component of an existing pipeline, but keeps all other components |
@@ -117,3 +118,4 @@ inputs have changed.
 | Workflow | Steps |
 | --- | --- |
 | `all` | `clean` &rarr; `convert` &rarr; `create-config` &rarr; `train` |
+| `dev` | `clean` &rarr; `convert.debug` &rarr; `create-config` &rarr; `train` |
