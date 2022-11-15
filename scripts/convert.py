@@ -1,3 +1,5 @@
+from os import makedirs
+import json
 from typing import List, Optional
 from numpy import random
 import typer
@@ -54,6 +56,7 @@ def warn(text: str):
 def main(lang: str, output_train: Path, output_validate: Path,
     url: Optional[str] = typer.Option(None, help="TEI Publisher URL to download sample data from"), 
     file: Optional[Path] = typer.Option(None, help="File containing sample data"),
+    debug: bool = typer.Option(False, "--debug"),
     verbose: bool = typer.Option(False, "--verbose")):
     """Convert training data received from TEI Publisher into spaCy's binary format"""
     nlp = spacy.blank(lang)
@@ -83,6 +86,12 @@ def main(lang: str, output_train: Path, output_validate: Path,
         samples = load_samples(url)
     else:
         raise typer.BadParameter('Either --url or --file needs to be specified')
+    
+    if (debug):
+        output_dir = output_train.absolute().parent
+        makedirs(output_dir, exist_ok=True)
+        with open(output_dir.joinpath('debug.json'), "w", encoding='UTF-8') as f:
+            f.write(json.dumps(samples, indent=4, ensure_ascii=False))
     
     random.shuffle(samples)
     splitAt = int(round(len(samples) * 0.3))

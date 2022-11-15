@@ -27,6 +27,11 @@ directories: ["corpus", "configs", "scripts", "packages", "models"]
 # run them via "spacy project run [workflow]". If a commands's inputs/outputs
 # haven't changed, it won't be re-run.
 workflows:
+  dev:
+    - clean
+    - convert.debug
+    - create-config
+    - train
   all:
     - clean
     - convert
@@ -59,6 +64,16 @@ commands:
     help: "Convert the data to spaCy's binary format"
     script:
       - "python scripts/convert.py --verbose ${vars.lang} --url ${vars.teipublisher}/api/nlp/data/${vars.training_collection} corpus/train.spacy corpus/dev.spacy"
+    deps:
+      - "scripts/convert.py"
+    outputs:
+      - "corpus/train.spacy"
+      - "corpus/dev.spacy"
+
+  - name: "convert.debug"
+    help: "Convert the data to spaCy's binary format (output input json for debugging)"
+    script:
+      - "python scripts/convert.py --verbose ${vars.lang} --debug --url ${vars.teipublisher}/api/nlp/data/${vars.training_collection} corpus/train.spacy corpus/dev.spacy"
     deps:
       - "scripts/convert.py"
     outputs:
