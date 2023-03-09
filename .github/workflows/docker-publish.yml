@@ -28,7 +28,9 @@ jobs:
       - name: Build docker image
         run: docker build -t ner -f Dockerfile .
       - name: Start docker image
-        run: docker run --publish 8001:8001 --name tp-ner --detach ner
+        run: docker run --publish 8001:8001 --name tp-ner -dit ner
+      - name: install bats
+        run: sudo apt-get install bats  
       - name: Run test
         run: bats test/*.bats
       - name: Stop Container
