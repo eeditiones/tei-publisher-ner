@@ -16,11 +16,23 @@ env:
   IMAGE_NAME: teipublisher-ner
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
 
-  # Push image to GitHub Packages.
-  # See also https://docs.docker.com/docker-hub/builds/
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Build docker image
+        run: docker build -t ner -f Dockerfile .
+      - name: Start docker image
+        run: docker run --publish 8001:8001 --name tp-ner --detach ner
+      - name: Run test
+        run: bats test/*.bats
+      - name: Stop Container
+        run: docker stop tp-ner  
+
   push:
-
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
