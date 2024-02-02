@@ -19,16 +19,16 @@ The project
 
 2. Download one or more trained [spaCy pipelines](https://spacy.io/models), e.g. for German:
 
-    `python -m spacy download de_core_news_sm`
+    `python3 -m spacy download de_core_news_sm`
 
 ## Starting the Named Entity Recognition Service
 
-We're using a [spaCy project setup](https://spacy.io/usage/projects) to orchestrate the different services and workflow steps. The setup is configured in [`project.yml`](project.yml), where you can change various variables. It also defines various commands and workflows. They can be executed using [`python -m spacy project run [name]`](https://spacy.io/api/cli#project-run). Commands are only re-run if their inputs have changed.
+We're using a [spaCy project setup](https://spacy.io/usage/projects) to orchestrate the different services and workflow steps. The setup is configured in [`project.yml`](project.yml), where you can change various variables. It also defines various commands and workflows. They can be executed using [`python3 -m spacy project run [name]`](https://spacy.io/api/cli#project-run). Commands are only re-run if their inputs have changed.
 
 To start the Named Entity Recognition (NER) Service, run the following command:
 
 ```sh
-python -m spacy project run serve
+python3 -m spacy project run serve
 ```
 
 By default the service will listen on port 8001, which corresponds to the port TEI Publisher has configured. If you now open a document in TEI Publisher's annotation editor (or reload the browser window if you had one open), you should see that an additional button is enabled at the bottom right of the toolbar. This indicates that TEI Publisher was able to communicate with the NER service.
